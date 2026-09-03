@@ -6,6 +6,11 @@
 # creation, dropping privileges).
 set -euo pipefail
 
+# Read before the assignment below overwrites it. HTTP_PORT is a local name,
+# not an input: someone who sets it on the platform, seeing it in this script
+# or in the log line below, gets no error and no effect. Hence the warning.
+INHERITED_HTTP_PORT="${HTTP_PORT:-}"
+
 HTTP_PORT="${PORT:-5984}"
 
 if ! [[ "$HTTP_PORT" =~ ^[0-9]+$ ]] || [ "$HTTP_PORT" -lt 1 ] || [ "$HTTP_PORT" -gt 65535 ]; then
@@ -21,6 +26,12 @@ INI
 chmod 0644 /opt/couchdb/etc/local.d/20-port.ini
 
 echo "[entrypoint] CouchDB listening on 0.0.0.0:${HTTP_PORT}"
+
+if [ -n "$INHERITED_HTTP_PORT" ]; then
+    echo "[entrypoint] WARNING: HTTP_PORT is set ('${INHERITED_HTTP_PORT}'), and" >&2
+    echo "[entrypoint] it is ignored: the port is taken from \$PORT, which the" >&2
+    echo "[entrypoint] platform injects. Remove HTTP_PORT, or set PORT instead." >&2
+fi
 
 if [ -n "${NODENAME:-}" ]; then
     echo "[entrypoint] WARNING: NODENAME is set ('${NODENAME}')." >&2

@@ -27,6 +27,7 @@ entrypoint.sh            injects $PORT into the config, then hands over to the o
 railway.json             build from Dockerfile, healthcheck on /_up, 1 replica
 docker-compose.yml       for trying it locally
 scripts/smoke-test.sh    checks that an instance is configured correctly
+.github/                 weekly Dependabot bump of the base image + CI that boots and tests it
 ```
 
 ---
@@ -46,9 +47,14 @@ Railway finds the `Dockerfile` on its own and reads `railway.json`.
 | `COUCHDB_PASSWORD` | a long random password — `openssl rand -base64 36` |
 | `COUCHDB_SECRET` | `openssl rand -hex 32` |
 
-Do **not** add `PORT` on Railway. Railway injects it automatically (often as `8080`), and the
-entrypoint configures CouchDB to listen on that value. The `5984` fallback is for environments
-that do not provide `PORT`, such as the local Docker Compose setup below.
+Those three are the whole list. Do **not** add `PORT`: Railway injects it at runtime with the
+value `8080`, and the entrypoint configures CouchDB to listen on that. The `5984` fallback inside
+the entrypoint is for environments that do not provide `PORT`, such as the local Docker Compose
+setup below.
+
+`HTTP_PORT` is not a variable either. It is a local name inside `entrypoint.sh`, reassigned from
+`$PORT` on every boot, so setting it on Railway changes nothing. If you already added it, it is
+harmless — delete it anyway, so it stops reading like the port the server is on.
 
 On Windows, to generate a secret: `[Convert]::ToBase64String((1..27 | % { Get-Random -Max 256 }))`
 
@@ -67,11 +73,14 @@ back up without CORS.
 
 ### 4. Public domain
 
-After the first deployment, go to **Settings** → **Networking** → **Generate Domain**. Railway
-normally detects the listening port automatically. If it asks for a target port, use the port
-shown in the deploy log (`CouchDB listening on 0.0.0.0:<port>`), commonly `8080` — do not assume
-it is CouchDB's local default of `5984`. You get a `https://something.up.railway.app` with TLS
-already sorted; do not append the internal port to this public URL.
+After the first deployment, go to **Settings** → **Networking** → **Generate Domain**. When it
+asks for a **target port**, answer `8080`: that is what Railway injects as `PORT`, and the deploy
+log says what the server did with it — `[entrypoint] CouchDB listening on 0.0.0.0:8080`. Do not
+put `5984` here; that is only CouchDB's own default, used when nothing provides `PORT`, and a
+target port that does not match the port the process listens on answers `502`.
+
+You get a `https://something.up.railway.app` with TLS already sorted. Do not append the port to
+this public URL: the proxy is on 443 and does the mapping.
 
 ### 5. Verify
 
@@ -183,7 +192,9 @@ curl -u USER:PASSWORD \
 
 The `FROM` is pinned by digest, so it does not update on its own. To move to a newer version,
 change **the tag and the digest together** in the `Dockerfile` and commit: Railway rebuilds.
-Try it locally first with `docker compose up --build`.
+Try it locally first with `docker compose up --build`. On a fork with Actions on, Dependabot
+opens that pull request every week and rewrites both, and CI boots the new image and runs the
+smoke test against it before you merge.
 
 CouchDB 3.x upgrades the data format in place, so patch and minor releases are frictionless.
 Never downgrade with a populated volume.
@@ -206,6 +217,7 @@ Never downgrade with a populated volume.
 | Symptom | Almost certain cause |
 |---|---|
 | Deploy stuck "unhealthy" or the public URL returns `502` while the logs look fine | The domain's Target Port does not match the port in `CouchDB listening on 0.0.0.0:<port>`. Edit the domain under **Settings → Networking** and select that port. |
+| The deploy log shows a port other than the one set in the variables | Only `PORT` is read, and on Railway it arrives injected as `8080`. `HTTP_PORT` is internal to `entrypoint.sh` and is overwritten on every boot. |
 | `401` on everything, even with the right credentials | Admin never created: `COUCHDB_USER`/`COUCHDB_PASSWORD` missing on the first boot (look for "Admin Party" in the logs). |
 | Obsidian: CORS error | A volume mounted over `local.d`, or a proxy in front rewriting the headers. |
 | The database is empty after a redeploy | Volume not mounted, or mounted on a path other than `/opt/couchdb/data`. |
