@@ -45,7 +45,10 @@ Railway finds the `Dockerfile` on its own and reads `railway.json`.
 | `COUCHDB_USER` | the admin user name, e.g. `obsidian` |
 | `COUCHDB_PASSWORD` | a long random password — `openssl rand -base64 36` |
 | `COUCHDB_SECRET` | `openssl rand -hex 32` |
-| `PORT` | `5984` |
+
+Do **not** add `PORT` on Railway. Railway injects it automatically (often as `8080`), and the
+entrypoint configures CouchDB to listen on that value. The `5984` fallback is for environments
+that do not provide `PORT`, such as the local Docker Compose setup below.
 
 On Windows, to generate a secret: `[Convert]::ToBase64String((1..27 | % { Get-Random -Max 256 }))`
 
@@ -64,8 +67,11 @@ back up without CORS.
 
 ### 4. Public domain
 
-**Settings** → **Networking** → **Generate Domain**; when it asks for the port, `5984`.
-You get a `https://something.up.railway.app` with TLS already sorted.
+After the first deployment, go to **Settings** → **Networking** → **Generate Domain**. Railway
+normally detects the listening port automatically. If it asks for a target port, use the port
+shown in the deploy log (`CouchDB listening on 0.0.0.0:<port>`), commonly `8080` — do not assume
+it is CouchDB's local default of `5984`. You get a `https://something.up.railway.app` with TLS
+already sorted; do not append the internal port to this public URL.
 
 ### 5. Verify
 
@@ -199,7 +205,7 @@ Never downgrade with a populated volume.
 
 | Symptom | Almost certain cause |
 |---|---|
-| Deploy stuck "unhealthy" but the logs look fine | The public port on Railway is not 5984, or `PORT` does not match. |
+| Deploy stuck "unhealthy" or the public URL returns `502` while the logs look fine | The domain's Target Port does not match the port in `CouchDB listening on 0.0.0.0:<port>`. Edit the domain under **Settings → Networking** and select that port. |
 | `401` on everything, even with the right credentials | Admin never created: `COUCHDB_USER`/`COUCHDB_PASSWORD` missing on the first boot (look for "Admin Party" in the logs). |
 | Obsidian: CORS error | A volume mounted over `local.d`, or a proxy in front rewriting the headers. |
 | The database is empty after a redeploy | Volume not mounted, or mounted on a path other than `/opt/couchdb/data`. |
