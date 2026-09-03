@@ -1,0 +1,11 @@
+.git
+.gitattributes
+.gitignore
+.github/
+.env
+.env.*
+README.md
+docker-compose.yml
+railway.json
+scripts/
+couchdb-data/

@@ -1,0 +1,99 @@
+# Builds the image and checks that it still works.
+#
+# This exists mostly for Dependabot: it opens pull requests that rewrite the
+# FROM line, the most delicate line in the repo, and a digest bump merged
+# without anything exercising it would give back exactly the risk that pinning
+# a digest was meant to remove.
+#
+# The checks run against a real container rather than against the .ini file:
+# the smoke test reads the configuration CouchDB actually loaded, so it also
+# catches a base image that moved its config directory, dropped curl, or
+# stopped reading local.d/.
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# A newer push to the same branch makes the run in flight pointless.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+# Nothing here writes to the repository or needs a secret: that is what lets it
+# run unchanged on Dependabot pull requests, which get a read-only token and no
+# access to the repository secrets.
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Build the image
+        run: docker build -t obsidian-livesync-couchdb:ci .
+
+      - name: Generate throwaway credentials
+        run: |
+          # The password travels through a command line inside the smoke test:
+          # masking keeps it out of the log even if a step echoes its arguments.
+          password="$(openssl rand -hex 24)"
+          echo "::add-mask::$password"
+          echo "COUCHDB_USER=ci" >> "$GITHUB_ENV"
+          echo "COUCHDB_PASSWORD=$password" >> "$GITHUB_ENV"
+
+      - name: Start the container and run the smoke test
+        run: |
+          set -euo pipefail
+
+          # Two runs, because $PORT is the only custom logic in this image:
+          # without the variable entrypoint.sh has to fall back to 5984, with
+          # it it has to write 20-port.ini. Railway only ever exercises the
+          # second path, docker compose the first.
+          run_case() {
+              local port="$1"; shift
+              local name="couchdb-ci-$port"
+
+              docker run -d --name "$name" \
+                  -e COUCHDB_USER="$COUCHDB_USER" \
+                  -e COUCHDB_PASSWORD="$COUCHDB_PASSWORD" \
+                  "$@" \
+                  -p "127.0.0.1:$port:$port" \
+                  obsidian-livesync-couchdb:ci >/dev/null
+
+              # Same probe as the HEALTHCHECK. The window is generous because
+              # the first boot also creates the system databases.
+              local i
+              for i in $(seq 1 60); do
+                  if curl -fsS "http://127.0.0.1:$port/_up" >/dev/null 2>&1; then
+                      break
+                  fi
+                  if [ "$i" -eq 60 ]; then
+                      echo "::error::CouchDB never answered on port $port"
+                      docker logs "$name"
+                      docker rm -f "$name" >/dev/null
+                      return 1
+                  fi
+                  sleep 2
+              done
+
+              echo "--- smoke test against port $port ---"
+              # Invoked the way the README tells users to, so CI also catches
+              # the executable bit going missing from the index.
+              if ! ./scripts/smoke-test.sh "http://127.0.0.1:$port" \
+                      "$COUCHDB_USER" "$COUCHDB_PASSWORD"; then
+                  echo "::error::smoke test failed on port $port"
+                  docker logs "$name"
+                  docker rm -f "$name" >/dev/null
+                  return 1
+              fi
+
+              docker rm -f "$name" >/dev/null
+          }
+
+          run_case 5984
+          run_case 8080 -e PORT=8080

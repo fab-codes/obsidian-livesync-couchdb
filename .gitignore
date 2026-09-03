@@ -1,0 +1,18 @@
+# Credentials: never in the repo.
+.env
+.env.*
+!.env.example
+
+# Local CouchDB data (if you use a bind mount instead of the Docker volume).
+couchdb-data/
+couchdb-etc/
+
+# Database dumps: the README's backup command writes them here, and they
+# contain the whole vault.
+backup-*.json
+*.couch
+
+# System junk.
+Thumbs.db
+desktop.ini
+.DS_Store

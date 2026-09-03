@@ -1,0 +1,11 @@
+# Everything in this repo is consumed by Linux tooling (Docker build context,
+# the container, Railway), so nothing here should ever be checked out with
+# CRLF - not even on Windows. A .dockerignore with CRLF, for instance, can
+# stop matching its own patterns and let .env into the build context.
+* text=auto eol=lf
+
+# The scripts run inside a Linux container: with CRLF the kernel cannot find
+# the interpreter ("bad interpreter: no such file or directory").
+*.sh   text eol=lf
+*.ini  text eol=lf
+Dockerfile text eol=lf

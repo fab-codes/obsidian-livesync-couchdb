@@ -1,0 +1,24 @@
+# Keeps the base image in the Dockerfile up to date, rewriting the tag and the
+# digest together in the same pull request so the two never drift apart.
+#
+# Neither entry sets `labels`: spelling the list out here would replace
+# Dependabot's default (`dependencies` plus the ecosystem name) rather than
+# extend it, and lose the one label that tells the two kinds of pull request
+# apart at a glance.
+version: 2
+updates:
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: "deps"
+
+  # The actions used by .github/workflows/ci.yml: that workflow is what vets
+  # the base image bumps, so it should not be the thing left unmaintained.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: "deps"

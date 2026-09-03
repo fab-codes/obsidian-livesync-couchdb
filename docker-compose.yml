@@ -1,0 +1,29 @@
+# For trying the image locally before shipping it to Railway.
+# Railway does not use this file.
+#
+#   cp .env.example .env   # and change the passwords
+#   docker compose up --build
+
+services:
+  couchdb:
+    build: .
+    container_name: obsidian-livesync-couchdb
+    environment:
+      COUCHDB_USER: ${COUCHDB_USER:?set COUCHDB_USER in the .env file}
+      COUCHDB_PASSWORD: ${COUCHDB_PASSWORD:?set COUCHDB_PASSWORD in the .env file}
+      COUCHDB_SECRET: ${COUCHDB_SECRET:-}
+      PORT: ${PORT:-5984}
+    ports:
+      - "${PORT:-5984}:${PORT:-5984}"
+    volumes:
+      - couchdb-data:/opt/couchdb/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:${PORT:-5984}/_up"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+volumes:
+  couchdb-data:
