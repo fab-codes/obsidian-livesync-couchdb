@@ -6,10 +6,14 @@
 # cannot. To move to a newer version, change the tag AND the digest together
 # (README, "Updating the image"). Dependabot does both in the same pull
 # request: see .github/dependabot.yml.
-FROM couchdb:3.5.3@sha256:bed314d10cdf58c0fff63352db4c3f168df58a185a773c0e2295105375c5ef10
+FROM couchdb:3.5.3@sha256:907eab5b7e55ab7cfd241d39b90b2a335ea40bef82acee5a37388c08bf201dda
 
 # An inherited label cannot be removed, only replaced: without this override
 # the image stays attributed to the CouchDB developers.
+#
+# base.name carries no tag on purpose. Dependabot rewrites only the FROM line,
+# so a version here goes stale on the first bump; the FROM line above is the
+# one record of the exact base image.
 LABEL org.opencontainers.image.title="obsidian-livesync-couchdb" \
       org.opencontainers.image.description="Apache CouchDB preconfigured for Obsidian Self-hosted LiveSync" \
       org.opencontainers.image.authors="Fabrizio Greco (@fab-codes)" \
@@ -17,7 +21,7 @@ LABEL org.opencontainers.image.title="obsidian-livesync-couchdb" \
       org.opencontainers.image.url="https://github.com/fab-codes/obsidian-livesync-couchdb" \
       org.opencontainers.image.source="https://github.com/fab-codes/obsidian-livesync-couchdb" \
       org.opencontainers.image.licenses="MIT" \
-      org.opencontainers.image.base.name="docker.io/library/couchdb:3.5.2.1" \
+      org.opencontainers.image.base.name="docker.io/library/couchdb" \
       maintainer="Fabrizio Greco (@fab-codes)"
 
 # CORS, mandatory auth, size limits. In local.d/ so it overrides default.ini.
