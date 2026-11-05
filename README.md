@@ -7,7 +7,7 @@ or on anything that can read a Dockerfile.
 
 [![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/new/template?template=https%3A%2F%2Fgithub.com%2Ffab-codes%2Fobsidian-livesync-couchdb)
 
-![CouchDB 3.5.2.1](https://img.shields.io/badge/CouchDB-3.5.2.1-e42528?logo=apachecouchdb&logoColor=white)
+![CouchDB 3.x](https://img.shields.io/badge/CouchDB-3.x-e42528?logo=apachecouchdb&logoColor=white)
 ![Docker](https://img.shields.io/badge/image-pinned%20by%20digest-2496ed?logo=docker&logoColor=white)
 ![Obsidian LiveSync](https://img.shields.io/badge/Obsidian-Self--hosted%20LiveSync-7c3aed?logo=obsidian&logoColor=white)
 ![License MIT](https://img.shields.io/badge/license-MIT-blue)
