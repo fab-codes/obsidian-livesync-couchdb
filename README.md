@@ -2,8 +2,8 @@
 
 Apache CouchDB, already configured for [Obsidian Self-hosted LiveSync](https://github.com/vrtmrz/obsidian-livesync):
 CORS for the Obsidian clients, no anonymous access, the document size limit raised for the first
-sync of a vault. One `Dockerfile`, one `.ini` file and a twenty-line entrypoint — it runs on
-Railway, or on anything that can read a Dockerfile.
+sync of a vault. A small Docker image, one `.ini` file and a thin entrypoint — it runs on Railway,
+or on anything that can read a Dockerfile.
 
 [![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/new/template?template=https%3A%2F%2Fgithub.com%2Ffab-codes%2Fobsidian-livesync-couchdb)
 
@@ -21,13 +21,14 @@ Railway, or on anything that can read a Dockerfile.
 ## What is in here
 
 ```
-Dockerfile               official CouchDB image pinned by digest + the two files below
-couchdb/10-livesync.ini  configuration: CORS, mandatory auth, size limits
-entrypoint.sh            injects $PORT into the config, then hands over to the official entrypoint
-railway.json             build from Dockerfile, healthcheck on /_up, 1 replica
-docker-compose.yml       for trying it locally
-scripts/smoke-test.sh    checks that an instance is configured correctly
-.github/                 weekly Dependabot bump of the base image + CI that boots and tests it
+Dockerfile               official CouchDB image pinned by digest; installs config and entrypoint
+couchdb/10-livesync.ini  CouchDB configuration: CORS, mandatory auth, size limits
+entrypoint.sh            validates $PORT, configures CouchDB, then runs the official entrypoint
+railway.json             Railway build, /_up healthcheck and single-replica deployment
+docker-compose.yml       local Docker Compose setup
+.env.example             local credentials and port template for Docker Compose
+scripts/smoke-test.sh    verifies a running instance end to end
+.github/                 weekly base-image updates and CI that boots and tests the image
 ```
 
 ---
