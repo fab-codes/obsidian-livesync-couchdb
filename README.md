@@ -77,7 +77,7 @@ back up without CORS.
 
 ### 4. Healthcheck
 
-In the service **Settings**, set the healthcheck path to:
+**Settings** → **Deploy** → **Healthcheck Path**:
 
 ```
 /_up
