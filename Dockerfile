@@ -6,7 +6,7 @@
 # cannot. To move to a newer version, change the tag AND the digest together
 # (README, "Updating the image"). Dependabot does both in the same pull
 # request: see .github/dependabot.yml.
-FROM couchdb:3.5.2.1@sha256:9ea24cbd76522fe845d1c32c7fd1dcfc8a3ba73dcc4817d62f8a7f7f1dfaffe3
+FROM couchdb:3.5.3@sha256:bed314d10cdf58c0fff63352db4c3f168df58a185a773c0e2295105375c5ef10
 
 # An inherited label cannot be removed, only replaced: without this override
 # the image stays attributed to the CouchDB developers.
