@@ -13,8 +13,9 @@ or on anything that can read a Dockerfile.
 ![License MIT](https://img.shields.io/badge/license-MIT-blue)
 
 > The button points at this repo on GitHub: if you fork or rename it, update the link URL.
-> Even when starting from the button, the **volume** (step 3) has to be added by hand before
-> you sync anything.
+> Even when starting from the button, the **volume** (step 3) and the **healthcheck** (step 4)
+> have to be set by hand: the button deploys the repo, and Railway reads no service settings
+> from it. Add the volume before you sync anything.
 
 ---
 
@@ -24,7 +25,6 @@ or on anything that can read a Dockerfile.
 Dockerfile               official CouchDB image pinned by digest; installs config and entrypoint
 couchdb/10-livesync.ini  CouchDB configuration: CORS, mandatory auth, size limits
 entrypoint.sh            validates $PORT, configures CouchDB, then runs the official entrypoint
-railway.json             Railway build, /_up healthcheck and single-replica deployment
 docker-compose.yml       local Docker Compose setup
 .env.example             local credentials and port template for Docker Compose
 scripts/smoke-test.sh    verifies a running instance end to end
@@ -38,7 +38,10 @@ scripts/smoke-test.sh    verifies a running instance end to end
 ### 1. Create the service
 
 Use the button above, or: Railway → **New Project** → **Deploy from GitHub repo**.
-Railway finds the `Dockerfile` on its own and reads `railway.json`.
+Railway finds the `Dockerfile` on its own and builds from it. Nothing else comes from the repo:
+Railway retired `railway.json` (it stops being read on 2026-12-01), and its replacement,
+`.railway/railway.ts`, is applied from the CLI to your own project and never read at deploy
+time. The two settings that matter, the volume and the healthcheck, are steps 3 and 4.
 
 ### 2. Variables
 
@@ -72,7 +75,22 @@ mount disappears the moment you mount it. Mount **only** this directory: mountin
 `/opt/couchdb/etc/local.d` as well would cover up the configuration, and the server would come
 back up without CORS.
 
-### 4. Public domain
+### 4. Healthcheck
+
+**Settings** → **Deploy** → **Healthcheck Path**:
+
+```
+/_up
+```
+
+It is the one endpoint CouchDB answers without credentials (`couchdb/10-livesync.ini` makes the
+exception). With it, Railway marks a deploy live only once CouchDB actually answers; without it,
+a deploy counts as successful the moment the container starts. Leave every other deploy setting
+at Railway's default — one replica, restart on failure up to 10 times, 300-second healthcheck
+timeout — they are already what this service needs. If **Settings** still shows a config file
+path from `railway.json`, clear it.
+
+### 5. Public domain
 
 After the first deployment, go to **Settings** → **Networking** → **Generate Domain**. When it
 asks for a **target port**, answer `8080`: that is what Railway injects as `PORT`, and the deploy
@@ -83,7 +101,7 @@ target port that does not match the port the process listens on answers `502`.
 You get a `https://something.up.railway.app` with TLS already sorted. Do not append the port to
 this public URL: the proxy is on 443 and does the mapping.
 
-### 5. Verify
+### 6. Verify
 
 ```bash
 ./scripts/smoke-test.sh https://something.up.railway.app USER PASSWORD
